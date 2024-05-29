@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+from numpy.random import RandomState
+
 from monai.config import KeysCollection
 from monai.utils.misc import ensure_tuple
 
@@ -33,6 +35,10 @@ class MixUpd(MapTransform):
     ) -> None:
         super().__init__(keys, allow_missing_keys)
         self.mixup = MixUp(batch_size, alpha)
+
+    def set_random_state(self, seed: int | None = None, state: RandomState | None = None):
+        self.mixup.set_random_state(seed, state)
+        return self
 
     def __call__(self, data):
         self.mixup.randomize()
@@ -63,6 +69,10 @@ class CutMixd(MapTransform):
         self.mixer = CutMix(batch_size, alpha)
         self.label_keys = ensure_tuple(label_keys) if label_keys is not None else []
 
+    def set_random_state(self, seed: int | None = None, state: RandomState | None = None):
+        self.mixer.set_random_state(seed, state)
+        return self
+
     def __call__(self, data):
         self.mixer.randomize()
         result = dict(data)
@@ -83,6 +93,10 @@ class CutOutd(MapTransform):
     def __init__(self, keys: KeysCollection, batch_size: int, allow_missing_keys: bool = False) -> None:
         super().__init__(keys, allow_missing_keys)
         self.cutout = CutOut(batch_size)
+
+    def set_random_state(self, seed: int | None = None, state: RandomState | None = None):
+        self.cutout.set_random_state(seed, state)
+        return self
 
     def __call__(self, data):
         result = dict(data)
