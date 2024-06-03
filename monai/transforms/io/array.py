@@ -15,6 +15,7 @@ A collection of "vanilla" transforms for IO functions.
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import sys
 import traceback
@@ -393,6 +394,7 @@ class SaveImage(Transform):
         output_name_formatter: Callable[[dict, Transform], dict] | None = None,
         folder_layout: FolderLayoutBase | None = None,
         savepath_in_metadict: bool = False,
+        mapping_json_path: Path | str | None = None,
     ) -> None:
         self.folder_layout: FolderLayoutBase
         if folder_layout is None:
@@ -438,6 +440,9 @@ class SaveImage(Transform):
         self.write_kwargs = {"verbose": print_log}
         self._data_index = 0
         self.savepath_in_metadict = savepath_in_metadict
+        self.mapping_json_path = Path(mapping_json_path) if mapping_json_path is not None else None
+        if mapping_json_path is not None:
+            self.savepath_in_metadict = True
 
     def set_options(self, init_kwargs=None, data_kwargs=None, meta_kwargs=None, write_kwargs=None):
         """
@@ -506,6 +511,21 @@ class SaveImage(Transform):
                 self._data_index += 1
                 if self.savepath_in_metadict and meta_data is not None:
                     meta_data["saved_to"] = filename
+                if self.mapping_json_path is not None and meta_data is not None:
+                    log_data = []
+                    log_data.append(
+                        {"input": meta_data.get("filename_or_obj", ()), "output": meta_data.get("saved_to", ())}
+                    )
+
+                    try:
+                        with open(self.mapping_json_path) as f:
+                            existing_log_data = json.load(f)
+                    except FileNotFoundError:
+                        existing_log_data = []
+
+                    with open(self.mapping_json_path, "w") as f:
+                        existing_log_data.extend(log_data)
+                        json.dump(existing_log_data, f, indent=4)
                 return img
         msg = "\n".join([f"{e}" for e in err])
         raise RuntimeError(
